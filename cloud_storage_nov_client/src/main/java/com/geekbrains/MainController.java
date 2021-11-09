@@ -3,14 +3,12 @@ package com.geekbrains;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.Initializable;
+import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.DataInputStream;
-import java.io.DataOutput;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.net.URL;
 import java.nio.file.Files;
@@ -23,14 +21,17 @@ import java.util.stream.Collectors;
 @Slf4j
 public class MainController implements Initializable {
 
+    public Button sendFileButton;
     private Path clientDir;
+    private Path serverDir;
 
     public ListView<String> clientView;
     public ListView<String> serverView;
     public TextField input;
 
-    private DataInputStream is;
-    private DataOutputStream os;
+    private Socket socket;
+    private ObjectInputStream ois;
+    private ObjectOutputStream oos;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -39,17 +40,18 @@ public class MainController implements Initializable {
             if(!Files.exists(clientDir)){
                 Files.createDirectory(clientDir);
             }
-            clientView.getItems().clear();
-            clientView.getItems().addAll(getFiles(clientDir));
+            serverDir = Paths.get("cloud_storage_nov_server","server");
+            refreshViews();
             clientView.setOnMouseClicked(event -> {
                 if(event.getClickCount() == 2){
                     String item = clientView.getSelectionModel().getSelectedItem();
                     input.setText(item);
                 }
             });
-            Socket socket = new Socket("localhost",8189);
-            is = new DataInputStream(socket.getInputStream());
-            os = new DataOutputStream(socket.getOutputStream());
+            socket = new Socket("localhost",8189);
+            oos = new ObjectOutputStream(socket.getOutputStream());
+            ois = new ObjectInputStream(socket.getInputStream());
+
             Thread readThread = new Thread(this::read);
             readThread.setDaemon(true);
             readThread.start();
@@ -59,6 +61,20 @@ public class MainController implements Initializable {
         }
     }
 
+    private void refreshViews() {
+        Platform.runLater(() -> {
+            clientView.getItems().clear();
+            serverView.getItems().clear();
+            try {
+                clientView.getItems().addAll(getFiles(clientDir));
+                serverView.getItems().addAll(getFiles(serverDir));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        });
+    }
+
     private List<String> getFiles(Path path) throws IOException {
         return Files.list(path).map(p -> p.getFileName().toString()).collect(Collectors.toList());
     }
@@ -66,9 +82,11 @@ public class MainController implements Initializable {
     private void read(){
         try {
             while (true) {
-                String msg = is.readUTF();
-                log.debug("Received: {}", msg);
-                Platform.runLater(()-> clientView.getItems().add(msg));
+                refreshViews();
+                MyObject myObject = (MyObject) ois.readObject();
+                String msg = myObject.getName();
+                //Platform.runLater(()-> clientView.getItems().add(msg));
+                log.debug("received the answer: {}",msg);
             }
         } catch (Exception e) {
             log.error("",e);
@@ -76,9 +94,20 @@ public class MainController implements Initializable {
     }
 
     public void sendMessage(ActionEvent actionEvent) throws IOException {
-        String text = input.getText();
-        os.writeUTF(text);
-        os.flush();
+        MyObject myObject = new MyObject(input.getText(),null);
+        oos.writeObject(myObject);
+        oos.flush();
         input.clear();
+    }
+
+    public void sendFile(ActionEvent actionEvent) throws IOException, ClassNotFoundException {
+        String fileForSending = input.getText();
+        MyObject myObject = new MyObject(fileForSending);
+        log.debug("Want to send: {}", Paths.get(clientDir.toString(),fileForSending));
+        myObject.setMas(Files.readAllBytes(Paths.get(clientDir.toString(),fileForSending)));
+        oos.writeObject(myObject);
+        oos.flush();
+        input.clear();
+        refreshViews();
     }
 }

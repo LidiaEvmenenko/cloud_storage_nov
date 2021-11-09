@@ -42,7 +42,7 @@
 <?import javafx.scene.layout.VBox?>
 
 <VBox fx:controller="com.geekbrains.MainController"
-      prefHeight="400.0" prefWidth="640.0" xmlns="http://javafx.com/javafx/17"
+      prefHeight="400.0" prefWidth="640.0" xmlns="http://javafx.com/javafx/8.0.181"
       xmlns:fx="http://javafx.com/fxml/1">
 
     <MenuBar VBox.vgrow="NEVER">
@@ -63,7 +63,7 @@
     <AnchorPane maxHeight="-1.0" maxWidth="-1.0" prefHeight="-1.0" prefWidth="-1.0" VBox.vgrow="ALWAYS">
             <ListView fx:id="clientView" layoutX="14.0" layoutY="38.0" prefHeight="295.0" prefWidth="262.0" />
             <ListView fx:id="serverView" layoutX="356.0" layoutY="38.0" prefHeight="295.0" prefWidth="262.0" />
-            <Button layoutX="288.0" layoutY="109.0" mnemonicParsing="false" prefHeight="55.0" prefWidth="55.0" text="&gt;" />
+            <Button fx:id="sendFileButton" onAction="#sendFile" layoutX="288.0" layoutY="109.0" mnemonicParsing="false" prefHeight="55.0" prefWidth="55.0" text="&gt;" />
             <Button layoutX="288.0" layoutY="179.0" mnemonicParsing="false" prefHeight="55.0" prefWidth="55.0" text="&lt;" />
             <TextField fx:id="input" onAction="#sendMessage" layoutX="13.0" layoutY="340.0" prefHeight="26.0" prefWidth="613.0" />
             <TextField layoutX="14.0" layoutY="14.0" prefHeight="26.0" prefWidth="262.0" />
